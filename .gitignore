@@ -25,6 +25,7 @@ venv/
 env/
 backend/.venv/
 backend/venv/
+backend/data/backups/
 
 # Python build artifacts
 build/
