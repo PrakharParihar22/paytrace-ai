@@ -1,0 +1,71 @@
+flowchart TB
+    subgraph Client["PayTrace Frontend — React / Vite"]
+        UI1["Overview Dashboard"]
+        UI2["Incident Workspace"]
+        UI3["Complaint Intake"]
+        UI4["Reliability Lab"]
+        UI5["Audit Trail"]
+    end
+
+    subgraph API["PayTrace Backend — FastAPI"]
+        ORD["Order / Payment API"]
+        WH["Razorpay Webhook Handler"]
+        CMP["Complaint Intake API"]
+        DASH["Dashboard Aggregation"]
+        PDF["PDF Report Export"]
+    end
+
+    subgraph Core["Deterministic Reliability Core"]
+        TIME["Timeline Engine"]
+        STATE["State Engine"]
+        EVID["Evidence Engine"]
+        INV["Investigator"]
+        REP["Reproduction Agent"]
+        FIX["Fix Advisor"]
+        REG["Regression Agent"]
+        SUITE["Reliability Suite"]
+        GUARD["Webhook Idempotency Guard"]
+    end
+
+    subgraph Storage["Persistence"]
+        SQLITE[("SQLite — Orders + Events")]
+        JSON1[("Complaint Store")]
+        JSON2[("Reliability Suite History")]
+    end
+
+    RZ["Razorpay Test Mode"]
+    ZROK["zrok Public Tunnel"]
+
+    UI1 --> DASH
+    UI2 --> DASH
+    UI2 --> REP
+    UI2 --> REG
+    UI2 --> PDF
+    UI3 --> CMP
+    UI4 --> ORD
+    UI4 --> SUITE
+    UI5 --> DASH
+
+    ORD --> RZ
+    RZ --> ZROK --> WH
+
+    WH --> GUARD
+    WH --> SQLITE
+    ORD --> SQLITE
+
+    SQLITE --> TIME
+    TIME --> STATE
+    TIME --> EVID
+    STATE --> INV
+    EVID --> INV
+    INV --> REP
+    INV --> FIX
+    REP --> REG
+    FIX --> REG
+
+    CMP --> JSON1
+    SUITE --> JSON2
+
+    DASH --> STATE
+    DASH --> INV
+    DASH --> TIME

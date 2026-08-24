@@ -1,0 +1,715 @@
+{
+  "latest_run": {
+    "run_id": "suite_86d1cb587139",
+    "executed_at": "2026-08-22T18:50:51.600879+00:00",
+    "execution_mode": "ISOLATED_RELIABILITY_LAB",
+    "score_method": "Percentage of executable reliability scenarios whose defined assertions all passed.",
+    "score": 100.0,
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "scenarios": [
+      {
+        "scenario_id": "NORMAL_PAYMENT",
+        "title": "Normal payment convergence",
+        "description": "A successful provider payment converges to merchant PAID without state divergence.",
+        "result": "PASS",
+        "assertions": [
+          {
+            "name": "provider_paid",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "merchant_paid",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "state_divergence",
+            "expected": false,
+            "actual": false,
+            "pass": true
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "action": "Provider reports captured/paid",
+            "state": {
+              "provider_paid": true,
+              "merchant_state": "CREATED",
+              "state_divergence": false
+            }
+          },
+          {
+            "step": 2,
+            "action": "Merchant processes success webhook",
+            "state": {
+              "provider_paid": true,
+              "merchant_state": "PAID",
+              "state_divergence": false
+            }
+          }
+        ]
+      },
+      {
+        "scenario_id": "WEBHOOK_HANDLER_RETRY",
+        "title": "Webhook handler failure + retry recovery",
+        "description": "The same idempotency policy used by the live route leaves a failed event retryable and marks it complete only after success.",
+        "result": "PASS",
+        "assertions": [
+          {
+            "name": "failure_observed",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "failed_attempt_not_marked_processed",
+            "expected": false,
+            "actual": false,
+            "pass": true
+          },
+          {
+            "name": "retry_succeeded",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "final_event_marked_processed",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "final_state_divergence",
+            "expected": false,
+            "actual": false,
+            "pass": true
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "action": "First webhook processing attempt returns HTTP 500",
+            "result": "FAILED",
+            "attempt": 1,
+            "event_marked_processed": false,
+            "merchant_state": "PAYMENT_VERIFIED"
+          },
+          {
+            "step": 2,
+            "action": "Retry processes the same event ID successfully",
+            "result": "RECOVERED",
+            "attempt": 2,
+            "event_marked_processed": true,
+            "merchant_state": "PAID"
+          }
+        ]
+      },
+      {
+        "scenario_id": "DUPLICATE_WEBHOOK",
+        "title": "Duplicate webhook idempotency",
+        "description": "The same guard used by the live webhook route acknowledges a successfully processed duplicate without repeating the merchant business action.",
+        "result": "PASS",
+        "assertions": [
+          {
+            "name": "duplicate_ignored",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "business_action_count",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "name": "merchant_paid",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "action": "Process first payment.captured delivery",
+            "result": "PROCESSED",
+            "merchant_state": "PAID",
+            "business_actions": 1
+          },
+          {
+            "step": 2,
+            "action": "Process duplicate event with same Razorpay event ID",
+            "result": "IGNORED_DUPLICATE",
+            "merchant_state": "PAID",
+            "business_actions": 1
+          }
+        ]
+      },
+      {
+        "scenario_id": "OUT_OF_ORDER_EVENTS",
+        "title": "Out-of-order event tolerance",
+        "description": "Success events may arrive in a different order without duplicating the PAID state transition.",
+        "result": "PASS",
+        "assertions": [
+          {
+            "name": "merchant_paid",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "single_paid_transition",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "action": "Deliver order.paid before payment.captured",
+            "merchant_state": "PAID",
+            "state_transitions": 1
+          },
+          {
+            "step": 2,
+            "action": "Deliver payment.captured afterward",
+            "merchant_state": "PAID",
+            "state_transitions": 1
+          }
+        ]
+      },
+      {
+        "scenario_id": "DELAYED_WEBHOOK_RECOVERY",
+        "title": "Delayed webhook recovery",
+        "description": "PayTrace detects the temporary provider/merchant mismatch and verifies convergence after delayed processing.",
+        "result": "PASS",
+        "assertions": [
+          {
+            "name": "temporary_divergence_detected",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "eventual_convergence",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "name": "final_divergence",
+            "expected": false,
+            "actual": false,
+            "pass": true
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "action": "Provider succeeds before webhook reaches merchant",
+            "provider_paid": true,
+            "merchant_state": "PAYMENT_VERIFIED",
+            "state_divergence": true
+          },
+          {
+            "step": 2,
+            "action": "Delayed success webhook arrives and reconciles state",
+            "provider_paid": true,
+            "merchant_state": "PAID",
+            "state_divergence": false
+          }
+        ]
+      }
+    ],
+    "safety": {
+      "real_money": false,
+      "production_changes": false,
+      "customer_contact": false
+    }
+  },
+  "history": [
+    {
+      "run_id": "suite_86d1cb587139",
+      "executed_at": "2026-08-22T18:50:51.600879+00:00",
+      "execution_mode": "ISOLATED_RELIABILITY_LAB",
+      "score_method": "Percentage of executable reliability scenarios whose defined assertions all passed.",
+      "score": 100.0,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "scenarios": [
+        {
+          "scenario_id": "NORMAL_PAYMENT",
+          "title": "Normal payment convergence",
+          "description": "A successful provider payment converges to merchant PAID without state divergence.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "provider_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "merchant_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "state_divergence",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Provider reports captured/paid",
+              "state": {
+                "provider_paid": true,
+                "merchant_state": "CREATED",
+                "state_divergence": false
+              }
+            },
+            {
+              "step": 2,
+              "action": "Merchant processes success webhook",
+              "state": {
+                "provider_paid": true,
+                "merchant_state": "PAID",
+                "state_divergence": false
+              }
+            }
+          ]
+        },
+        {
+          "scenario_id": "WEBHOOK_HANDLER_RETRY",
+          "title": "Webhook handler failure + retry recovery",
+          "description": "The same idempotency policy used by the live route leaves a failed event retryable and marks it complete only after success.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "failure_observed",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "failed_attempt_not_marked_processed",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            },
+            {
+              "name": "retry_succeeded",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "final_event_marked_processed",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "final_state_divergence",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "First webhook processing attempt returns HTTP 500",
+              "result": "FAILED",
+              "attempt": 1,
+              "event_marked_processed": false,
+              "merchant_state": "PAYMENT_VERIFIED"
+            },
+            {
+              "step": 2,
+              "action": "Retry processes the same event ID successfully",
+              "result": "RECOVERED",
+              "attempt": 2,
+              "event_marked_processed": true,
+              "merchant_state": "PAID"
+            }
+          ]
+        },
+        {
+          "scenario_id": "DUPLICATE_WEBHOOK",
+          "title": "Duplicate webhook idempotency",
+          "description": "The same guard used by the live webhook route acknowledges a successfully processed duplicate without repeating the merchant business action.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "duplicate_ignored",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "business_action_count",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            },
+            {
+              "name": "merchant_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Process first payment.captured delivery",
+              "result": "PROCESSED",
+              "merchant_state": "PAID",
+              "business_actions": 1
+            },
+            {
+              "step": 2,
+              "action": "Process duplicate event with same Razorpay event ID",
+              "result": "IGNORED_DUPLICATE",
+              "merchant_state": "PAID",
+              "business_actions": 1
+            }
+          ]
+        },
+        {
+          "scenario_id": "OUT_OF_ORDER_EVENTS",
+          "title": "Out-of-order event tolerance",
+          "description": "Success events may arrive in a different order without duplicating the PAID state transition.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "merchant_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "single_paid_transition",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Deliver order.paid before payment.captured",
+              "merchant_state": "PAID",
+              "state_transitions": 1
+            },
+            {
+              "step": 2,
+              "action": "Deliver payment.captured afterward",
+              "merchant_state": "PAID",
+              "state_transitions": 1
+            }
+          ]
+        },
+        {
+          "scenario_id": "DELAYED_WEBHOOK_RECOVERY",
+          "title": "Delayed webhook recovery",
+          "description": "PayTrace detects the temporary provider/merchant mismatch and verifies convergence after delayed processing.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "temporary_divergence_detected",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "eventual_convergence",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "final_divergence",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Provider succeeds before webhook reaches merchant",
+              "provider_paid": true,
+              "merchant_state": "PAYMENT_VERIFIED",
+              "state_divergence": true
+            },
+            {
+              "step": 2,
+              "action": "Delayed success webhook arrives and reconciles state",
+              "provider_paid": true,
+              "merchant_state": "PAID",
+              "state_divergence": false
+            }
+          ]
+        }
+      ],
+      "safety": {
+        "real_money": false,
+        "production_changes": false,
+        "customer_contact": false
+      }
+    },
+    {
+      "run_id": "suite_90104f536627",
+      "executed_at": "2026-08-22T18:49:00.729875+00:00",
+      "execution_mode": "ISOLATED_RELIABILITY_LAB",
+      "score_method": "Percentage of executable reliability scenarios whose defined assertions all passed.",
+      "score": 100.0,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "scenarios": [
+        {
+          "scenario_id": "NORMAL_PAYMENT",
+          "title": "Normal payment convergence",
+          "description": "A successful provider payment converges to merchant PAID without state divergence.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "provider_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "merchant_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "state_divergence",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Provider reports captured/paid",
+              "state": {
+                "provider_paid": true,
+                "merchant_state": "CREATED",
+                "state_divergence": false
+              }
+            },
+            {
+              "step": 2,
+              "action": "Merchant processes success webhook",
+              "state": {
+                "provider_paid": true,
+                "merchant_state": "PAID",
+                "state_divergence": false
+              }
+            }
+          ]
+        },
+        {
+          "scenario_id": "WEBHOOK_HANDLER_RETRY",
+          "title": "Webhook handler failure + retry recovery",
+          "description": "The same idempotency policy used by the live route leaves a failed event retryable and marks it complete only after success.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "failure_observed",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "failed_attempt_not_marked_processed",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            },
+            {
+              "name": "retry_succeeded",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "final_event_marked_processed",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "final_state_divergence",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "First webhook processing attempt returns HTTP 500",
+              "result": "FAILED",
+              "attempt": 1,
+              "event_marked_processed": false,
+              "merchant_state": "PAYMENT_VERIFIED"
+            },
+            {
+              "step": 2,
+              "action": "Retry processes the same event ID successfully",
+              "result": "RECOVERED",
+              "attempt": 2,
+              "event_marked_processed": true,
+              "merchant_state": "PAID"
+            }
+          ]
+        },
+        {
+          "scenario_id": "DUPLICATE_WEBHOOK",
+          "title": "Duplicate webhook idempotency",
+          "description": "The same guard used by the live webhook route acknowledges a successfully processed duplicate without repeating the merchant business action.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "duplicate_ignored",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "business_action_count",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            },
+            {
+              "name": "merchant_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Process first payment.captured delivery",
+              "result": "PROCESSED",
+              "merchant_state": "PAID",
+              "business_actions": 1
+            },
+            {
+              "step": 2,
+              "action": "Process duplicate event with same Razorpay event ID",
+              "result": "IGNORED_DUPLICATE",
+              "merchant_state": "PAID",
+              "business_actions": 1
+            }
+          ]
+        },
+        {
+          "scenario_id": "OUT_OF_ORDER_EVENTS",
+          "title": "Out-of-order event tolerance",
+          "description": "Success events may arrive in a different order without duplicating the PAID state transition.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "merchant_paid",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "single_paid_transition",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Deliver order.paid before payment.captured",
+              "merchant_state": "PAID",
+              "state_transitions": 1
+            },
+            {
+              "step": 2,
+              "action": "Deliver payment.captured afterward",
+              "merchant_state": "PAID",
+              "state_transitions": 1
+            }
+          ]
+        },
+        {
+          "scenario_id": "DELAYED_WEBHOOK_RECOVERY",
+          "title": "Delayed webhook recovery",
+          "description": "PayTrace detects the temporary provider/merchant mismatch and verifies convergence after delayed processing.",
+          "result": "PASS",
+          "assertions": [
+            {
+              "name": "temporary_divergence_detected",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "eventual_convergence",
+              "expected": true,
+              "actual": true,
+              "pass": true
+            },
+            {
+              "name": "final_divergence",
+              "expected": false,
+              "actual": false,
+              "pass": true
+            }
+          ],
+          "steps": [
+            {
+              "step": 1,
+              "action": "Provider succeeds before webhook reaches merchant",
+              "provider_paid": true,
+              "merchant_state": "PAYMENT_VERIFIED",
+              "state_divergence": true
+            },
+            {
+              "step": 2,
+              "action": "Delayed success webhook arrives and reconciles state",
+              "provider_paid": true,
+              "merchant_state": "PAID",
+              "state_divergence": false
+            }
+          ]
+        }
+      ],
+      "safety": {
+        "real_money": false,
+        "production_changes": false,
+        "customer_contact": false
+      }
+    }
+  ]
+}
